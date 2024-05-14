@@ -6,21 +6,13 @@ class Database:
         self.__conn = sqlite3.connect(db_name)
         self.__cur = self.__conn.cursor()
 
-    # свойство-геттер
-
-    @property
-    def db_data(self):
-        return self.db_data
-
-    @db_data.setter
-    def db_data(self, table_name, data):
+    def set_data(self, table_name, data):
         placeholders = ', '.join(['?' for _ in range(len(data))])
         query = f"INSERT INTO {table_name} VALUES ({placeholders})"
         self.__cur.execute(query, data)
         self.__conn.commit()
 
-    @db_data.getter
-    def db_data(self, table_name, row_id):
+    def get_data(self, table_name, row_id):
         query = f"SELECT * FROM {table_name} WHERE id=?"
         self.__cur.execute(query, (row_id,))
         row = self.__cur.fetchone()
