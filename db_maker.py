@@ -73,7 +73,7 @@ with con:
                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     good_id INTEGER NOT NULL,
                     warehouse_id INTEGER NOT NULL,
-                    write_off_date VARCHAR(100) NOT NULL,
+                    date VARCHAR(100) NOT NULL,
                     count INTEGER NOT NULL,
                     reason VARCHAR(500) NOT NULL
                 );
@@ -84,7 +84,7 @@ with con:
                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     good_id INTEGER NOT NULL,
                     warehouse_id INTEGER NOT NULL,
-                    receipt_date VARCHAR(100) NOT NULL,
+                    date VARCHAR(100) NOT NULL,
                     count INTEGER NOT NULL,
                     comment VARCHAR(500)
                 );
@@ -96,7 +96,7 @@ with con:
                     good_id INTEGER NOT NULL,
                     warehouse_id INTEGER NOT NULL,
                     client_id INTEGER NOT NULL,
-                    sale_date VARCHAR(100) NOT NULL,
+                    date VARCHAR(100) NOT NULL,
                     count INTEGER NOT NULL,
                     price VARCHAR(100) NOT NULL
                 );
@@ -108,8 +108,8 @@ with con:
                         good_id INTEGER NOT NULL,
                         from_warehouse_id INTEGER NOT NULL,
                         to_warehouse_id INTEGER NOT NULL,
-                        transfer_date VARCHAR(100) NOT NULL,
+                        date VARCHAR(100) NOT NULL,
                         count INTEGER NOT NULL,
-                        comment VARCHAR(500) NOT NULL
+                        comment VARCHAR(500)
                     );
                 """)

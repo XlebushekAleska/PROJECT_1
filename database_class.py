@@ -4,6 +4,7 @@ import sqlite3
 class Database:
     def __init__(self, db_name):
         self.__conn = sqlite3.connect(db_name)
+        self.__conn.create_function("test_function", 1, test2)
         self.__cur = self.__conn.cursor()
 
     def set_data(self, table_name, data, img):
@@ -43,26 +44,25 @@ class Database:
         column_names = [description[0] for description in cursor.description]
         return data, column_names
 
-
     """
      для записи изображения в базу данных, необходимо открыть его через
     with с препиской rb, а затем добавить его в бд через sql-запрос
     """
 
     def table_filling(self, table_name):
-        switch = {"Goods": f"""SELECT 
-                                    Goods.id AS "id",
-                                    Goods.name AS "имя",
-                                    Goods.article AS "артикул",
-                                    Goods.category AS "категория",
-                                    SUM(Accounting.count) AS "количество",
-                                    Goods.price AS "цена"
-                                FROM 
-                                    Goods
-                                LEFT JOIN 
-                                    Accounting ON Goods.id = Accounting.good_id
-                                GROUP BY 
-                                    Goods.id""",
+        switch = {"Goods": f"""SELECT
+                                   Goods.id AS "id",
+                                   Goods.name AS "имя",
+                                   Goods.article AS "артикул",
+                                   Goods.category AS "категория",
+                                   SUM(Accounting.count) AS "количество",
+                                   Goods.price AS "цена"
+                               FROM 
+                                   Goods
+                               LEFT JOIN 
+                                   Accounting ON Goods.id = Accounting.good_id
+                               GROUP BY 
+                                   Goods.id""",
 
                   "Warehouses": f"""SELECT 
                                         id AS "id", 
@@ -83,16 +83,58 @@ class Database:
                                     Orders""",
 
                   "Clients": f"""SELECT 
-                                    Clients.id AS "id",
-                                    Clients.name AS "имя",
-                                    Clients.contact AS "контактные данные",
-                                    COUNT(Orders.id) AS "количество заказов"
-                                FROM 
-                                    Clients
-                                LEFT JOIN 
-                                    Orders ON Clients.id = Orders.client_id
-                                GROUP BY 
-                                    Clients.id"""
+                                     Clients.id AS "id",
+                                     Clients.name AS "имя",
+                                     Clients.contact AS "контактные данные",
+                                     COUNT(Orders.id) AS "количество заказов"
+                                 FROM 
+                                     Clients
+                                 LEFT JOIN 
+                                     Orders ON Clients.id = Orders.client_id
+                                 GROUP BY 
+                                     Clients.id""",
+
+                  "Write_off": f"""SELECT 
+                                       id AS "id",
+                                       good_id AS "id товара",
+                                       warehouse_id AS "id склада",
+                                       date AS "дата",
+                                       count AS "количество",
+                                       reason AS "причина"                                        
+                                   FROM 
+                                       Write_off""",
+
+                  "Receipt": f"""SELECT 
+                                     id AS "id",
+                                     good_id AS "id товара",
+                                     warehouse_id AS "id склада",
+                                     date AS "дата",
+                                     count AS "количество",
+                                     comment AS "комментарий"                                        
+                                 FROM 
+                                     Receipt""",
+
+                  "Sale": f"""SELECT 
+                                     id AS "id",
+                                     good_id AS "id товара",
+                                     warehouse_id AS "id склада",
+                                     client_id AS "id клиента",
+                                     date AS "дата",
+                                     count AS "количество",
+                                     price AS "цена"                                        
+                                 FROM 
+                                     Sale""",
+
+                  "Transfer": f"""SELECT 
+                                  id AS "id",
+                                  good_id AS "id товара",
+                                  from_warehouse_id AS "id склада из...",
+                                  to_warehouse_id AS "id склада в...",
+                                  date AS "дата",
+                                  count AS "количество",
+                                  comment AS "комментарий"                                        
+                              FROM 
+                                  Transfer""",
                   }
         # print(switch[table_name])
         cursor = self.__cur.execute(switch[table_name])
@@ -111,64 +153,113 @@ class Database:
     def operations(self):
         # возвращает тип операции, дату операции, id скалада
         transfer_query = f"""
-                            SELECT transfer_date, from_warehouse_id, to_warehouse_id FROM Transfer 
+                            SELECT date, good_id, from_warehouse_id FROM Transfer 
                           """
         sale_query = f"""
-                        SELECT sale_date, warehouse_id FROM Sale 
+                        SELECT date, good_id, warehouse_id FROM Sale 
                       """
         receipt_query = f"""
-                            SELECT receipt_date, warehouse_id FROM Receipt 
+                            SELECT date, good_id, warehouse_id FROM Receipt 
                         """
         write_off_query = f"""
-                            SELECT write_off_date, warehouse_id FROM Write_off 
+                            SELECT date, good_id, warehouse_id FROM Write_off 
                            """
         cursor = self.__cur.execute(transfer_query)
-        transfer_data = ('transfer', cursor.fetchall())
+        transfer_data = [('transfer',) + row for row in cursor.fetchall()]
         cursor = self.__cur.execute(sale_query)
-        sale_data = ('sale', cursor.fetchall())
+        sale_data = [('sale',) + row for row in cursor.fetchall()]
         cursor = self.__cur.execute(receipt_query)
-        receipt_data = ('receipt', cursor.fetchall())
+        receipt_data = [('receipt',) + row for row in cursor.fetchall()]
         cursor = self.__cur.execute(write_off_query)
-        write_off_data = ('write_off', cursor.fetchall())
-        return transfer_data, sale_data, receipt_data, write_off_data
+        write_off_data = [('write_off',) + row for row in cursor.fetchall()]
 
-    def own_query(self, query, data):
+        return transfer_data + sale_data + receipt_data + write_off_data, ('операция', 'дата', 'id товара', 'id склада')
+
+    # def own_query(self, query, data):
+    #     if data:
+    #         cursor = self.__cur.execute(query, data)
+    #         self.__cur.commit()
+    #         print(cursor.fetchall(), '\n', query, '\n', data)
+    #         return cursor.fetchall()
+    #     else:
+    #         cursor = self.__cur.execute(query)
+    #         print(cursor)
+    #         return cursor.fetchall()
+
+    def own_query(self, query, data=None, fetch=True):
+        """
+        Метод для выполнения нестандартных SQL-запросов к базе данных.
+
+        :param query: SQL-запрос
+        :param data: Данные для подстановки в запрос (необязательно)
+        :param fetch: Флаг, указывающий, нужно ли извлечь данные из курсора (по умолчанию True)
+        :return: Результат выполнения запроса (если fetch=True) или None (если fetch=False)
+        """
         if data:
             cursor = self.__cur.execute(query, data)
-            print(cursor.fetchall(), '\n', query, '\n', data)
-            return cursor.fetchall()
         else:
             cursor = self.__cur.execute(query)
-            print(cursor)
-            return cursor.fetchall()
+
+        if fetch:
+            result = cursor.fetchall()
+            # print(result, '\n', query, '\n', data)
+            return result
+        else:
+            self.__conn.commit()
+            return None
 
     def close(self):
         self.__conn.close()
 
+    def test(self):
+        """
+        питоновская функция в sql
+        :return:
+        """
+        data = self.__conn.execute("""
+                    SELECT test_function(charasteristic) FROM Goods
+                    """)
+        print(data.fetchall())
 
-class Filter(Database):
-    def __init__(self, params, db_name):
-        super().__init__(db_name)
-        self.filter_params = params
+    # def operations(self)
+
+
+def test2(x: str) -> str:
+    '''
+    питоновская функция в sql
+    :return:
+    '''
+
+    if len(x) > 10:
+        return x[:10]
+    else:
+        return x
 
 
 if __name__ == "__main__":
     db = Database("Database1.db")
-    print(db.table_filling('Goods'))
+    print(db.table_filling("Receipt"))
+    # print(db.operations())
+    # db.test()
+
+    # print(db.table_filling('Goods'))
+    # print(db.table_filling('Warehouses'))
+    # print(db.table_filling('Orders'))
+    # print(db.table_filling('Clients'))
+
     # with open(r'C:\Users\Алесь\PycharmProjects\PROJECT_1\goodsImages\1645328776175687133.jpg', 'rb') as photo:
     #     photo = photo.read()
-    #     db.own_query(f'''
+    #     db.own_query(query=f'''
     #         INSERT INTO Goods (name, article, category, charasteristic, picture, price) VALUES (?, ?, ?, ?, ?, ?)
-    #     ''', data=['dildo "the rock"',
-    #                'Огромный член, распечатанный на 3Д принтере. Порвёт даже самую бывалую шкуру. всем рекомендовано к покупке!',
-    #                'toys for adult',
-    #                'размер: XXXXL; цвет: серый; постобработка: об дырку само слижется; ограничения: 21+',
+    #     ''', data=['дубинка "the rock"',
+    #                'Дубинка угабуги, распечатанная на 3Д принтере. Грозное оружие в походе даже на самого'
+    #                ' крупного мамонта. Всем угабугам рекомендовано к покупке!',
+    #                'toys for ugabuga',
+    #                'размер: XXXXL; цвет: серый; постобработка: о мамонта само сотрётся; ограничения: отсутствуют',
     #                photo,
-    #                'бесценен'])
+    #                '300'], fetch=False)
+    #
     # print(db.get_data('Goods', 0))
-
-
-
 
 # from PyQt5 import QtCore, QtGui, QtWidgets
 # import sqlite3 as sl
@@ -201,3 +292,23 @@ if __name__ == "__main__":
 #         return None
 
 
+# with open(r'C:\Users\Алесь\PycharmProjects\PROJECT_1\goodsImages\1645328776175687133.jpg', 'rb') as photo:
+#     photo = photo.read()
+#     db.own_query(query=f'''
+#         INSERT INTO Goods (name, article, category, charasteristic, picture, price) VALUES (?, ?, ?, ?, ?, ?)
+#     ''', data=['dildo "the rock"',
+#                'Огромный член, распечатанный на 3Д принтере. Порвёт даже самую бывалую шкуру. всем рекомендовано к покупке!',
+#                'toys for adult',
+#                'размер: XXXXL; цвет: серый; постобработка: об дырку само слижется; ограничения: 21+',
+#                photo,
+#                'бесценен'])
+# print(db.get_data('Goods', 0))
+
+
+
+# шлак
+
+# class Filter(Database):
+#     def __init__(self, params, db_name):
+#         super().__init__(db_name)
+#         self.filter_params = params
