@@ -86,7 +86,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Авторизация"))
         self.label.setText(_translate("MainWindow", "Авторизация"))
         self.label_2.setText(_translate("MainWindow", "Логин:"))
         self.lineEdit.setText(_translate("MainWindow", "логин"))
@@ -102,7 +102,7 @@ class Ui_MainWindow(object):
         password = self.lineEdit_2.text()
 
         if login == "admin" and password == "admin":
-            print(dialog.exec_())
+            dialog.exec_()
         else:
             QtWidgets.QMessageBox.warning(self.centralwidget, "Ошибка", "Неправильный логин или пароль")
 
