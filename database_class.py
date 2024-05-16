@@ -55,15 +55,14 @@ class Database:
                                     Goods.name AS "имя",
                                     Goods.article AS "артикул",
                                     Goods.category AS "категория",
-                                    SUM(Accounting.quantity) AS "количество",
+                                    SUM(Accounting.count) AS "количество",
                                     Goods.price AS "цена"
                                 FROM 
                                     Goods
                                 LEFT JOIN 
                                     Accounting ON Goods.id = Accounting.good_id
                                 GROUP BY 
-                                    Goods.id,
-                                    """,
+                                    Goods.id""",
 
                   "Warehouses": f"""SELECT 
                                         id AS "id", 
@@ -95,7 +94,7 @@ class Database:
                                 GROUP BY 
                                     Clients.id"""
                   }
-
+        # print(switch[table_name])
         cursor = self.__cur.execute(switch[table_name])
         data = cursor.fetchall()
         column_names = [description[0] for description in cursor.description]
@@ -155,6 +154,7 @@ class Filter(Database):
 
 if __name__ == "__main__":
     db = Database("Database1.db")
+    print(db.table_filling('Goods'))
     # with open(r'C:\Users\Алесь\PycharmProjects\PROJECT_1\goodsImages\1645328776175687133.jpg', 'rb') as photo:
     #     photo = photo.read()
     #     db.own_query(f'''
