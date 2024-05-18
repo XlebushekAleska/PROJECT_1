@@ -7,9 +7,24 @@ class Database:
         self.__conn.create_function("test_function", 1, test2)
         self.__cur = self.__conn.cursor()
 
-    def set_data(self, table_name, data, img):
-        placeholders = ', '.join(['?' for _ in range(len(data))])
-        query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+    def apply_filter(self, filter_function):
+        data = filter_function(self.__cur)
+        column_names = [description[0] for description in self.__cur.description]
+        return data, column_names
+
+    def get_column_names(self, table_name: str):
+        self.__cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
+        return [description[0] for description in self.__cur.description]
+
+    def set_data(self, table_name: str, data: list):
+        self.__cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
+        column_names = [description[0] for description in self.__cur.description]
+        column_names.remove('id')
+        placeholders = ', '.join('?' for _ in range(len(data)))
+        column_names = ', '.join(column_names)
+        print(placeholders)
+        query = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
+        print(query)
         self.__cur.execute(query, data)
         self.__conn.commit()
 
@@ -17,8 +32,9 @@ class Database:
         query = f"SELECT * FROM {table_name} WHERE id=?"
         self.__cur.execute(query, (row_id,))
         row = self.__cur.fetchall()
+        column_names = [description[0] for description in self.__cur.description]
         if row:
-            return row[1]
+            return row, column_names
         else:
             return None
 
@@ -143,13 +159,6 @@ class Database:
         return data, column_names
         # вернуть список из строк таблицы базы данных для заполнения qtablewidget
 
-    # def table_filling(self, table_name):
-    #     cursor = self.__cur.execute(f"SELECT * FROM {table_name}")
-    #     data = cursor.fetchall()
-    #     column_names = [description[0] for description in cursor.description]
-    #     return data, column_names
-    #     # вернуть список из строк таблицы базы данных для заполнения qtablewidget
-
     def operations(self):
         # возвращает тип операции, дату операции, id скалада
         transfer_query = f"""
@@ -174,17 +183,6 @@ class Database:
         write_off_data = [('write_off',) + row for row in cursor.fetchall()]
 
         return transfer_data + sale_data + receipt_data + write_off_data, ('операция', 'дата', 'id товара', 'id склада')
-
-    # def own_query(self, query, data):
-    #     if data:
-    #         cursor = self.__cur.execute(query, data)
-    #         self.__cur.commit()
-    #         print(cursor.fetchall(), '\n', query, '\n', data)
-    #         return cursor.fetchall()
-    #     else:
-    #         cursor = self.__cur.execute(query)
-    #         print(cursor)
-    #         return cursor.fetchall()
 
     def own_query(self, query, data=None, fetch=True):
         """
@@ -236,9 +234,40 @@ def test2(x: str) -> str:
         return x
 
 
+def filter_goods_by_category_and_price(category: str, min_price: float, max_price: float):
+    def inner(cursor):
+        query = """
+            SELECT * FROM Goods 
+            WHERE category LIKE ? A ND price BETWEEN ? AND ?
+        """
+        cursor.execute(query, (f"%{category}%", min_price, max_price))
+        return cursor.fetchall()
+    return inner
+
+
+def filter_clients_by_name(name: str):
+    def inner(cursor):
+        query = """
+            SELECT * FROM Clients 
+            WHERE name LIKE ?
+        """
+        cursor.execute(query, (f"%{name}%",))
+        return cursor.fetchall()
+    return inner
+
+
 if __name__ == "__main__":
     db = Database("Database1.db")
-    print(db.table_filling("Receipt"))
+
+    print(db.get_column_names('Goods'))
+    db.set_data(table_name='Goods', data=['шляпа', 'головной убор крестьянина, которому позавидует любой барин',
+                                          'головные уборы; одежда', 'размер: L, цвет: светлый; матриал: солома', None, '15'])
+
+    # print(db.get_data('Goods', 1))
+    print(db.get_column_names('Goods'))
+
+
+    # print(db.table_filling("Receipt"))
     # print(db.operations())
     # db.test()
 

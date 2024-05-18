@@ -7,10 +7,10 @@ with con:
         CREATE TABLE IF NOT EXISTS Goods (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             name VARCHAR(100) NOT NULL,
-            article VARCHAR(500),
-            category VARCHAR(200),
+            article VARCHAR(50) NOT NULL,
+            category VARCHAR(200) NOT NULL,
             charasteristic VARCHAR(500),
-            picture BLOB NOT NULL,
+            picture VARCHAR(250),
             price VARCHAR(100) NOT NULL
         );
     """)
