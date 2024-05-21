@@ -84,8 +84,7 @@ class Database:
                                         id AS "id", 
                                         name AS "имя", 
                                         adress AS "адрес", 
-                                        geolocation AS "геолокация", 
-                                        coordinates AS "координаты"
+                                        geolocation AS "геолокация",
                                     FROM 
                                         Warehouses""",
 
