@@ -1,6 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QShortcut
 from database_class import Database
 from actsWindow import Ui_Dialog_Acts
+from detailsWindow import Ui_Dialog_Details
+from filterWindow import Ui_Dialog_filter
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -10,18 +15,21 @@ class Ui_Dialog(object):
         self.tabWidget.setGeometry(QtCore.QRect(0, 0, 921, 611))
         self.tabWidget.setObjectName("tabWidget")
 
-        db = Database("Database1.db")
-        goods_data = db.table_filling("Goods")
-        houses_data = db.table_filling("Warehouses")
-        orders_data = db.table_filling("Orders")
-        clients_data = db.table_filling("Clients")
-        acts_data = db.operations()
+        self.db = Database("Database1.db")
+        goods_data = self.db.table_filling("Goods")
+        houses_data = self.db.table_filling("Warehouses")
+        orders_data = self.db.table_filling("Orders")
+        clients_data = self.db.table_filling("Clients")
+        acts_data = self.db.operations()
         table_tabs = []
         table_tabs.append(goods_data[1])
         table_tabs.append(houses_data[1])
         table_tabs.append(orders_data[1])
         table_tabs.append(clients_data[1])
-        # table_tabs.append(acts_data[1])
+        table_tabs.append(acts_data[1])
+
+        delete_shortcut = QShortcut(QKeySequence(Qt.Key_Backspace), Dialog)
+        delete_shortcut.activated.connect(self.delete_row)
 
         for i in range(5):
             tab = QtWidgets.QWidget()
@@ -35,20 +43,18 @@ class Ui_Dialog(object):
             horizontalLayout.setContentsMargins(0, 0, 0, 0)
             horizontalLayout.setObjectName(f"horizontalLayout_{i+1}")
 
-            for j in range(6):
+            for j in range(4):
                 if i != 4:
                     if j == 0:
                         button_name = "фильтр"
                     elif j == 1:
-                        button_name = "удалить"
-                    elif j == 2:
                         button_name = "добавить"
-                    elif j == 3:
-                        button_name = "изменить"
-                    elif j == 4:
+                    elif j == 2:
                         button_name = "перезагрузить"
-                    else:
+                    elif j == 3:
                         button_name = "сохранить"
+                    else:
+                        continue
                 else:
                     if j == 0:
                         button_name = "фильтр"
@@ -57,19 +63,18 @@ class Ui_Dialog(object):
                     elif j == 2:
                         button_name = "приемка"
                     elif j == 3:
-                        button_name = "списание"
-                    elif j == 4:
-                        button_name = "перемещение"
-                    else:
                         button_name = "перезагрузить"
+                    else:
+                        continue
                 pushButton = QtWidgets.QPushButton(button_name, horizontalLayoutWidget)
-                pushButton.setObjectName(f"pushButton_{i*5+j+1}")
+                pushButton.setObjectName(f"pushButton_{i*10+j+1}")
                 horizontalLayout.addWidget(pushButton)
                 pushButton.setFocusPolicy(QtCore.Qt.NoFocus)
 
             tableWidget = QtWidgets.QTableWidget(tab)
             tableWidget.setGeometry(QtCore.QRect(0, 50, 911, 531))
             tableWidget.setObjectName(f"tableWidget_{i+1}")
+            tableWidget.setSortingEnabled(True)
 
             if i < len(table_tabs):
                 tableWidget.setColumnCount(len(table_tabs[i]))
@@ -108,27 +113,40 @@ class Ui_Dialog(object):
             else:
                 tableWidget.setRowCount(1)
 
-        for i in [3, 8, 13, 18]:
+        self.popup = PopupWidget(Dialog)
+
+        for i in [2, 12, 22, 32]:
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
                 button.clicked.connect(self.add_row)
         
-        for i in [2, 7, 12, 17]:
+        for i in [1, 11, 21, 31, 41]:
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
-                button.clicked.connect(self.delete_row)
+                button.clicked.connect(self.filterWindowShow)
+        
+        for i in [43]:
+            button_name = f"pushButton_{i}"
+            button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
+            if button:
+                button.clicked.connect(lambda _, index=(i): self.show_popup(index))
+
+        self.popup.button1.clicked.connect(lambda _, index=(1): self.actsWindowShow(index))
+        self.popup.button2.clicked.connect(lambda _, index=(2): self.actsWindowShow(index))
+        self.popup.button3.clicked.connect(lambda _, index=(3): self.actsWindowShow(index))
 
         for i in range(5):
             current_tb_widget = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{i+1}")
             current_tb_widget.itemClicked.connect(self.on_item_clicked)
+            current_tb_widget.cellDoubleClicked.connect(self.cell_double_clicked)
 
-        for i in [22, 23, 24, 25]:
+        for i in [42]:
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
-                button.clicked.connect(lambda _, index=(i-22): self.actsWindowShow(index))
+                button.clicked.connect(lambda _, index=(i-42): self.actsWindowShow(index))
         
         
         self.retranslateUi(Dialog)
@@ -184,12 +202,73 @@ class Ui_Dialog(object):
         for col in range(current_tabel.columnCount()):
             current_tabel.item(row_number, col).setBackground(red)
 
+    def cell_double_clicked(self, row, column):
+        table_index = self.tabWidget.currentIndex()
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        item = current_table.item(row, 0)
+        item_id = item.text()
+        content = self.db.get_data("Goods", item_id)
+
+        result = '\n\n'.join(str(item) for item in content[0])
+
+        if item is not None:
+            QtWidgets.QMessageBox.information(None, "Cell Double Clicked", result)
+        
+        dialog = QtWidgets.QDialog()
+        ui_dialog = Ui_Dialog_Details()
+        ui_dialog.setupUi(dialog)
+        dialog.exec_()
+
+
     def actsWindowShow(self, index):
         dialog = QtWidgets.QDialog()
         ui_dialog = Ui_Dialog_Acts()
         ui_dialog.setupUi(dialog)
         ui_dialog.comboBox.setCurrentIndex(index)
         dialog.exec_()
+
+    def filterWindowShow(self):
+        dialog = QtWidgets.QDialog()
+        ui_dialog = Ui_Dialog_filter()
+        ui_dialog.setupUi(dialog)
+        dialog.exec_()
+
+    def show_popup(self, index):
+        button = self.tabWidget.findChild(QtWidgets.QPushButton, f"pushButton_{index}")
+        button_width = button.width()
+        button_height = button.height()
+
+        button_pos = button.mapToGlobal(button.rect().bottomLeft())
+        self.popup.move(button_pos)
+
+        self.popup.setFixedSize(button_width, button_height * 3)
+        self.popup.set_button_size(button_width, button_height)
+
+        self.popup.show()
+
+class PopupWidget(QtWidgets.QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Popup)
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+
+        self.button1 = QtWidgets.QPushButton("приемка", self)
+        self.button2 = QtWidgets.QPushButton("списание", self)
+        self.button3 = QtWidgets.QPushButton("перемещение", self)
+
+        self.layout.addWidget(self.button1)
+        self.layout.addWidget(self.button2)
+        self.layout.addWidget(self.button3)
+        self.setLayout(self.layout)
+
+    def set_button_size(self, width, height):
+        self.button1.setFixedSize(width, height)
+        self.button2.setFixedSize(width, height)
+        self.button3.setFixedSize(width, height)
 
 if __name__ == "__main__":
     import sys

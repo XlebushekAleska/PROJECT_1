@@ -39,6 +39,7 @@ class Ui_Dialog_Acts(object):
 
         self.comboBox.currentIndexChanged.connect(self.show_table)
         self.tableWidget.itemClicked.connect(self.on_item_clicked)
+        self.tableWidget.cellDoubleClicked.connect(self.cell_double_clicked)
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -103,6 +104,10 @@ class Ui_Dialog_Acts(object):
             row = item.row()
             self.tableWidget.selectRow(row)
 
+    def cell_double_clicked(self, row, column):
+        item = self.tableWidget.item(row, column)
+        if item is not None:
+            QtWidgets.QMessageBox.information(None, "Cell Double Clicked", f"You double clicked on cell {row}, {column} with value: {item.text()}")
 
 
 
