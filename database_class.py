@@ -31,7 +31,7 @@ class Database:
     def get_data(self, table_name, row_id):
         query = f"SELECT * FROM {table_name} WHERE id=?"
         self.__cur.execute(query, (row_id,))
-        row = self.__cur.fetchall()
+        row = self.__cur.fetchall()[0]
         column_names = [description[0] for description in self.__cur.description]
         if row:
             return row, column_names
@@ -256,12 +256,34 @@ def filter_clients_by_name(name: str):
     return inner
 
 
+def filter_orders(name: str):
+    def inner(cursor):
+        query = """
+            SELECT * FROM Clients 
+            WHERE name LIKE ?
+        """
+        cursor.execute(query, (f"%{name}%",))
+        return cursor.fetchall()
+    return inner
+
+
+def filter_wharehouses(name: str):
+    def inner(cursor):
+        query = """
+            SELECT * FROM Clients 
+            WHERE name LIKE ?
+        """
+        cursor.execute(query, (f"%{name}%",))
+        return cursor.fetchall()
+    return inner
+
+
 if __name__ == "__main__":
     db = Database("Database1.db")
 
     print(db.get_column_names('Goods'))
     db.set_data(table_name='Goods', data=['шляпа', 'головной убор крестьянина, которому позавидует любой барин',
-                                          'головные уборы; одежда', 'размер: L, цвет: светлый; матриал: солома', None, '15'])
+                                          'головные уборы; одежда', 'размер: L; цвет: светлый; матриал: солома', None, '15'])
 
     # print(db.get_data('Goods', 1))
     print(db.get_column_names('Goods'))
