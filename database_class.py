@@ -45,6 +45,7 @@ class Database:
                          {table_name}.id = {row_id}''')
 
         cursor = self.__cur.execute(query)
+        self.__conn.commit()
         return cursor.fetchall()
 
     def warehouse_selection(self, warehouse_id):
@@ -380,19 +381,19 @@ def test2(x: str) -> str:
         return x
 
 
-
-
-
 if __name__ == "__main__":
     db = Database("Database1.db")
 
-    print(db.get_column_names('Goods'))
-    db.set_data(table_name='Goods', data=['шляпа', 'головной убор крестьянина, которому позавидует любой барин',
-                                          'головные уборы; одежда', 'размер: L; цвет: светлый; матриал: солома', None,
-                                          '15'])
+    db.delete_data('Goods', 2)
+
+    #
+    # print(db.get_column_names('Goods'))
+    # db.set_data(table_name='Goods', data=['шляпа', 'головной убор крестьянина, которому позавидует любой барин',
+    #                                       'головные уборы; одежда', 'размер: L; цвет: светлый; матриал: солома', None,
+    #                                       '15'])
 
     # print(db.get_data('Goods', 1))
-    print(db.get_column_names('Goods'))
+    # print(db.get_column_names('Goods'))
 
     # print(db.table_filling("Receipt"))
     # print(db.operations())
