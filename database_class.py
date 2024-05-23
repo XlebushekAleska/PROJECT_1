@@ -84,7 +84,8 @@ class Database:
                                LEFT JOIN 
                                    Accounting ON Goods.id = Accounting.good_id
                                GROUP BY 
-                                   Goods.id""",
+                                   Goods.id
+                               """,
 
                   "Warehouses": f"""SELECT 
                                         id AS "id", 
@@ -92,7 +93,8 @@ class Database:
                                         adress AS "адрес", 
                                         geolocation AS "геолокация"
                                     FROM 
-                                        Warehouses""",
+                                        Warehouses
+                                    """,
 
                   "Orders": f"""SELECT
                                     id AS "id",  
@@ -101,7 +103,8 @@ class Database:
                                     status AS "статус", 
                                     price AS "стоимость"
                                 FROM 
-                                    Orders""",
+                                    Orders
+                                """,
 
                   "Clients": f"""SELECT 
                                      Clients.id AS "id",
@@ -113,7 +116,8 @@ class Database:
                                  LEFT JOIN 
                                      Orders ON Clients.id = Orders.client_id
                                  GROUP BY 
-                                     Clients.id""",
+                                     Clients.id
+                                 """,
 
                   "Write_off": f"""SELECT 
                                        id AS "id",
@@ -123,7 +127,8 @@ class Database:
                                        count AS "количество",
                                        reason AS "причина"                                        
                                    FROM 
-                                       Write_off""",
+                                       Write_off
+                                   """,
 
                   "Receipt": f"""SELECT 
                                      id AS "id",
@@ -133,7 +138,8 @@ class Database:
                                      count AS "количество",
                                      comment AS "комментарий"                                        
                                  FROM 
-                                     Receipt""",
+                                     Receipt
+                                 """,
 
                   "Sale": f"""SELECT 
                                      id AS "id",
@@ -144,7 +150,8 @@ class Database:
                                      count AS "количество",
                                      price AS "цена"                                        
                                  FROM 
-                                     Sale""",
+                                     Sale
+                                 """,
 
                   "Transfer": f"""SELECT 
                                   id AS "id",
@@ -155,7 +162,8 @@ class Database:
                                   count AS "количество",
                                   comment AS "комментарий"                                        
                               FROM 
-                                  Transfer""",
+                                  Transfer
+                              """,
                   }
         # print(switch[table_name])
         cursor = self.__cur.execute(switch[table_name])
@@ -273,7 +281,7 @@ class Database:
                          Orders
                      LEFT JOIN
                         Clients ON Orders.client_id = Clients.id
-                    """)
+                     """)
 
         if first_date and last_date:
             query += f'\nWHERE Orders.order_date BETWEEN {first_date} AND {last_date},'
@@ -308,7 +316,7 @@ class Database:
                         SELECT date, good_id, warehouse_id FROM Sale 
                       """
         receipt_query = f"""
-                            SELECT date, good_id, warehouse_id FROM Receipt 
+                           SELECT date, good_id, warehouse_id FROM Receipt 
                         """
         write_off_query = f"""
                             SELECT date, good_id, warehouse_id FROM Write_off 
