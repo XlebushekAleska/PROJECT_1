@@ -4,8 +4,9 @@ import sqlite3
 class Database:
     def __init__(self, db_name):
         self.__conn = sqlite3.connect(db_name)
-        self.__conn.create_function("test_function", 1, test2)
         self.__cur = self.__conn.cursor()
+        self.__conn.create_function("test_function", 1, test2)
+        self.__conn.create_function('filter_goods', 8, filter_goods)
 
     def apply_filter(self, filter_function):
         data = filter_function(self.__cur)
@@ -37,6 +38,17 @@ class Database:
             return row, column_names
         else:
             return None
+
+    def delete_data(self, table_name, row_id):
+        query = (f'''DELETE
+                         {table_name}
+                     FROM
+                         {table_name}
+                     WHERE
+                         {table_name}.id = {row_id}''')
+
+        cursor = self.__cur.execute(query)
+        return cursor.fetchall()
 
     def warehouse_selection(self, warehouse_id):
         query = f"""SELECT 
@@ -281,37 +293,95 @@ def filter_goods(min_price: float = None, max_price: float = None, min_count: in
     return inner
 
 
-def filter_clients(name: str):
+def filter_wharehouses(name: str = None, adress: str = None):
     def inner(cursor):
-        query = """
-            SELECT * FROM Clients 
-            WHERE name LIKE ?
-        """
-        cursor.execute(query, (f"%{name}%",))
+        query = (f"""SELECT 
+                         id AS "id", 
+                         name AS "имя", 
+                         adress AS "адрес", 
+                         geolocation AS "геолокация"
+                     FROM 
+                         Warehouses""")
+
+        if name:
+            query += f'\nWHERE name == "{name}",'
+
+        if adress:
+            query += f'\nWHERE adress == "{adress}",'
+
+        query = query[:-1]
+        cursor.execute(query)
         return cursor.fetchall()
 
     return inner
 
 
-def filter_orders(name: str):
+def filter_clients(min_orders_count: int = None, max_orders_count: int = None, name: str = None):
     def inner(cursor):
-        query = """
-            SELECT * FROM Clients 
-            WHERE name LIKE ?
-        """
-        cursor.execute(query, (f"%{name}%",))
+        query = (f"""SELECT 
+                        Clients.id AS "id",
+                        Clients.name AS "имя",
+                        Clients.contact AS "контактные данные",
+                        COUNT(Orders.id) AS "количество заказов"
+                    FROM 
+                        Clients
+                    LEFT JOIN 
+                        Orders ON Clients.id = Orders.client_id
+                    GROUP BY 
+                        Clients.id""")
+        if min_orders_count and max_orders_count:
+            query += f'\nWHERE COUNT(Orders.id) BETWEEN {min_orders_count} AND {max_orders_count},'
+        elif min_orders_count:
+            query += f'\nWHERE COUNT(Orders.id) > {min_orders_count},'
+        elif max_orders_count:
+            query += f'\nWHERE COUNT(Orders.id) < {max_orders_count},'
+
+        if name:
+            query += f'\nWHERE Clients.name == "{name}",'
+
+        query = query[:-1] + '\nGROUP BY Clients.id'
+        cursor.execute(query)
         return cursor.fetchall()
 
     return inner
 
 
-def filter_wharehouses(name: str):
+def filter_orders(first_date: str = None, last_date: str = None, status: str = None,
+                  first_price: float = None, last_price: float = None, name: str = None):
     def inner(cursor):
-        query = """
-            SELECT * FROM Clients 
-            WHERE name LIKE ?
-        """
-        cursor.execute(query, (f"%{name}%",))
+        query = (f"""SELECT
+                         id AS "id",  
+                         order_date AS "дата", 
+                         client_id AS "id клиента",
+                         status AS "статус", 
+                         price AS "стоимость"
+                     FROM 
+                         Orders
+                     LEFT JOIN
+                        Clients ON Orders.client_id = Clients.id""")
+
+        if first_date and last_date:
+            query += f'\nWHERE Orders.order_date BETWEEN {first_date} AND {las_date},'
+        elif first_date:
+            query += f'\nWHERE Orders.order_date > {first_date},'
+        elif last_date:
+            query += f'\nWHERE Orders.order_date < {last_date},'
+
+        if status:
+            query += f'\nWHERE Orders.status == "{status}",'
+
+        if first_price and last_price:
+            query += f'\nWHERE Orders.price BETWEEN {first_price} AND {last_price},'
+        elif first_price:
+            query += f'\nWHERE Orders.price > {first_price},'
+        elif last_price:
+            query += f'\nWHERE Orders.price < {last_price},'
+
+        if name:
+            query += f'\nWHERE Clients.name == "{name}",'
+
+        query = query[:-1]
+        cursor.execute(query)
         return cursor.fetchall()
 
     return inner
