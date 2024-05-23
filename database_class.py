@@ -6,7 +6,6 @@ class Database:
         self.__conn = sqlite3.connect(db_name)
         self.__cur = self.__conn.cursor()
         self.__conn.create_function("test_function", 1, test2)
-        self.__conn.create_function('filter_goods', 8, filter_goods)
 
     def apply_filter(self, filter_function):
         data = filter_function(self.__cur)
@@ -40,9 +39,7 @@ class Database:
             return None
 
     def delete_data(self, table_name, row_id):
-        query = (f'''DELETE
-                         {table_name}
-                     FROM
+        query = (f'''DELETE FROM
                          {table_name}
                      WHERE
                          {table_name}.id = {row_id}''')
@@ -170,6 +167,144 @@ class Database:
         return data, column_names
         # вернуть список из строк таблицы базы данных для заполнения qtablewidget
 
+    def filter_goods(self, min_price: float = None, max_price: float = None, min_count: int = None, max_count: int = None,
+                     name: str = None, article: str = None, category: str = None, warehouse_id: int = None):
+        def inner(cursor):
+            query = ("""SELECT 
+                            Goods.id AS "id",
+                            Goods.name AS "имя",
+                            Goods.article AS "артикул",
+                            Goods.category AS "категория",
+                            SUM(Accounting.count) AS "количество",
+                            Goods.price AS "цена"
+                        FROM 
+                            Goods
+                        LEFT JOIN
+                            Accounting ON goods.id = Accounting.good_id""")
+
+            if min_price and max_price:
+                query += f'\nWHERE Goods.price BETWEEN {min_price} and {max_price},'
+            elif min_price:
+                query += f'\nWHERE Goods.price > {min_price},'
+            elif max_price:
+                query += f'\nWHERE Goods.price < {max_price},'
+
+            if min_count and max_count:
+                query += f'\nWHERE Accounting.count BETWEEN {min_count} and {max_count},'
+            elif min_count:
+                query += f'\nWHERE Accounting.count > {min_count},'
+            elif max_count:
+                query += f'\nWHERE Accounting.count < {max_count},'
+
+            if name:
+                query += f'\nWHERE Goods.name == "{name}",'
+
+            if article:
+                query += f'\nWHERE Goods.article == "{article}",'
+
+            if category:
+                query += f'\nWHERE Goods.category == "{category}",'
+
+            if warehouse_id:
+                query += f'\nWhere Accounting.wharehouse_id == {warehouse_id},'
+
+            query = query[:-1] + '\nGROUP BY Goods.id'
+            cursor.execute(query)
+            return cursor.fetchall()
+
+        return inner
+
+    def filter_wharehouses(self, name: str = None, adress: str = None):
+        def inner(cursor):
+            query = (f"""SELECT 
+                             id AS "id", 
+                             name AS "имя", 
+                             adress AS "адрес", 
+                             geolocation AS "геолокация"
+                         FROM 
+                             Warehouses""")
+
+            if name:
+                query += f'\nWHERE name == "{name}",'
+
+            if adress:
+                query += f'\nWHERE adress == "{adress}",'
+
+            query = query[:-1]
+            cursor.execute(query)
+            return cursor.fetchall()
+
+        return inner
+
+    def filter_clients(self, min_orders_count: int = None, max_orders_count: int = None, name: str = None):
+        def inner(cursor):
+            query = (f"""SELECT 
+                            Clients.id AS "id",
+                            Clients.name AS "имя",
+                            Clients.contact AS "контактные данные",
+                            COUNT(Orders.id) AS "количество заказов"
+                        FROM 
+                            Clients
+                        LEFT JOIN 
+                            Orders ON Clients.id = Orders.client_id
+                        GROUP BY 
+                            Clients.id""")
+            if min_orders_count and max_orders_count:
+                query += f'\nWHERE COUNT(Orders.id) BETWEEN {min_orders_count} AND {max_orders_count},'
+            elif min_orders_count:
+                query += f'\nWHERE COUNT(Orders.id) > {min_orders_count},'
+            elif max_orders_count:
+                query += f'\nWHERE COUNT(Orders.id) < {max_orders_count},'
+
+            if name:
+                query += f'\nWHERE Clients.name == "{name}",'
+
+            query = query[:-1] + '\nGROUP BY Clients.id'
+            cursor.execute(query)
+            return cursor.fetchall()
+
+        return inner
+
+    def filter_orders(self, first_date: str = None, last_date: str = None, status: str = None,
+                      first_price: float = None, last_price: float = None, name: str = None):
+        def inner(cursor):
+            query = (f"""SELECT
+                             id AS "id",  
+                             order_date AS "дата", 
+                             client_id AS "id клиента",
+                             status AS "статус", 
+                             price AS "стоимость"
+                         FROM 
+                             Orders
+                         LEFT JOIN
+                            Clients ON Orders.client_id = Clients.id""")
+
+            if first_date and last_date:
+                query += f'\nWHERE Orders.order_date BETWEEN {first_date} AND {last_date},'
+            elif first_date:
+                query += f'\nWHERE Orders.order_date > {first_date},'
+            elif last_date:
+                query += f'\nWHERE Orders.order_date < {last_date},'
+
+            if status:
+                query += f'\nWHERE Orders.status == "{status}",'
+
+            if first_price and last_price:
+                query += f'\nWHERE Orders.price BETWEEN {first_price} AND {last_price},'
+            elif first_price:
+                query += f'\nWHERE Orders.price > {first_price},'
+            elif last_price:
+                query += f'\nWHERE Orders.price < {last_price},'
+
+            if name:
+                query += f'\nWHERE Clients.name == "{name}",'
+
+            query = query[:-1]
+            cursor.execute(query)
+            return cursor.fetchall()
+
+        return inner
+
     def operations(self):
         # возвращает тип операции, дату операции, id скалада
         transfer_query = f"""
@@ -245,146 +380,7 @@ def test2(x: str) -> str:
         return x
 
 
-def filter_goods(min_price: float = None, max_price: float = None, min_count: int = None, max_count: int = None,
-                 name: str = None, article: str = None, category: str = None, warehouse_id: int = None):
-    def inner(cursor):
-        query = ("""SELECT 
-                        Goods.id AS "id",
-                        Goods.name AS "имя",
-                        Goods.article AS "артикул",
-                        Goods.category AS "категория",
-                        SUM(Accounting.count) AS "количество",
-                        Goods.price AS "цена"
-                    FROM 
-                        Goods
-                    LEFT JOIN
-                        Accounting ON goods.id = Accounting.good_id""")
 
-        if min_price and max_price:
-            query += f'\nWHERE Goods.price BETWEEN {min_price} and {max_price},'
-        elif min_price:
-            query += f'\nWHERE Goods.price > {min_price},'
-        elif max_price:
-            query += f'\nWHERE Goods.price < {max_price},'
-
-        if min_count and max_count:
-            query += f'\nWHERE Accounting.count BETWEEN {min_count} and {max_count},'
-        elif min_count:
-            query += f'\nWHERE Accounting.count > {min_count},'
-        elif max_count:
-            query += f'\nWHERE Accounting.count < {max_count},'
-
-        if name:
-            query += f'\nWHERE Goods.name == "{name}",'
-
-        if article:
-            query += f'\nWHERE Goods.article == "{article}",'
-
-        if category:
-            query += f'\nWHERE Goods.category == "{category}",'
-
-        if warehouse_id:
-            query += f'\nWhere Accounting.wharehouse_id == {warehouse_id},'
-
-        query = query[:-1] + '\nGROUP BY Goods.id'
-        cursor.execute(query)
-        return cursor.fetchall()
-
-    return inner
-
-
-def filter_wharehouses(name: str = None, adress: str = None):
-    def inner(cursor):
-        query = (f"""SELECT 
-                         id AS "id", 
-                         name AS "имя", 
-                         adress AS "адрес", 
-                         geolocation AS "геолокация"
-                     FROM 
-                         Warehouses""")
-
-        if name:
-            query += f'\nWHERE name == "{name}",'
-
-        if adress:
-            query += f'\nWHERE adress == "{adress}",'
-
-        query = query[:-1]
-        cursor.execute(query)
-        return cursor.fetchall()
-
-    return inner
-
-
-def filter_clients(min_orders_count: int = None, max_orders_count: int = None, name: str = None):
-    def inner(cursor):
-        query = (f"""SELECT 
-                        Clients.id AS "id",
-                        Clients.name AS "имя",
-                        Clients.contact AS "контактные данные",
-                        COUNT(Orders.id) AS "количество заказов"
-                    FROM 
-                        Clients
-                    LEFT JOIN 
-                        Orders ON Clients.id = Orders.client_id
-                    GROUP BY 
-                        Clients.id""")
-        if min_orders_count and max_orders_count:
-            query += f'\nWHERE COUNT(Orders.id) BETWEEN {min_orders_count} AND {max_orders_count},'
-        elif min_orders_count:
-            query += f'\nWHERE COUNT(Orders.id) > {min_orders_count},'
-        elif max_orders_count:
-            query += f'\nWHERE COUNT(Orders.id) < {max_orders_count},'
-
-        if name:
-            query += f'\nWHERE Clients.name == "{name}",'
-
-        query = query[:-1] + '\nGROUP BY Clients.id'
-        cursor.execute(query)
-        return cursor.fetchall()
-
-    return inner
-
-
-def filter_orders(first_date: str = None, last_date: str = None, status: str = None,
-                  first_price: float = None, last_price: float = None, name: str = None):
-    def inner(cursor):
-        query = (f"""SELECT
-                         id AS "id",  
-                         order_date AS "дата", 
-                         client_id AS "id клиента",
-                         status AS "статус", 
-                         price AS "стоимость"
-                     FROM 
-                         Orders
-                     LEFT JOIN
-                        Clients ON Orders.client_id = Clients.id""")
-
-        if first_date and last_date:
-            query += f'\nWHERE Orders.order_date BETWEEN {first_date} AND {las_date},'
-        elif first_date:
-            query += f'\nWHERE Orders.order_date > {first_date},'
-        elif last_date:
-            query += f'\nWHERE Orders.order_date < {last_date},'
-
-        if status:
-            query += f'\nWHERE Orders.status == "{status}",'
-
-        if first_price and last_price:
-            query += f'\nWHERE Orders.price BETWEEN {first_price} AND {last_price},'
-        elif first_price:
-            query += f'\nWHERE Orders.price > {first_price},'
-        elif last_price:
-            query += f'\nWHERE Orders.price < {last_price},'
-
-        if name:
-            query += f'\nWHERE Clients.name == "{name}",'
-
-        query = query[:-1]
-        cursor.execute(query)
-        return cursor.fetchall()
-
-    return inner
 
 
 if __name__ == "__main__":
