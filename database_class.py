@@ -233,18 +233,55 @@ def test2(x: str) -> str:
         return x
 
 
-def filter_goods_by_category_and_price(category: str, min_price: float, max_price: float):
+def filter_goods(min_price: float = None, max_price: float = None, min_count: int = None, max_count: int = None,
+                 name: str = None, article: str = None, category: str = None, warehouse_id: int = None):
     def inner(cursor):
-        query = """
-            SELECT * FROM Goods 
-            WHERE category LIKE ? A ND price BETWEEN ? AND ?
-        """
-        cursor.execute(query, (f"%{category}%", min_price, max_price))
+        query = ("""SELECT 
+                        Goods.id AS "id",
+                        Goods.name AS "имя",
+                        Goods.article AS "артикул",
+                        Goods.category AS "категория",
+                        SUM(Accounting.count) AS "количество",
+                        Goods.price AS "цена"
+                    FROM 
+                        Goods
+                    LEFT JOIN
+                        Accounting ON goods.id = Accounting.good_id""")
+
+        if min_price and max_price:
+            query += f'\nWHERE Goods.price BETWEEN {min_price} and {max_price},'
+        elif min_price:
+            query += f'\nWHERE Goods.price > {min_price},'
+        elif max_price:
+            query += f'\nWHERE Goods.price < {max_price},'
+
+        if min_count and max_count:
+            query += f'\nWHERE Accounting.count BETWEEN {min_count} and {max_count},'
+        elif min_count:
+            query += f'\nWHERE Accounting.count > {min_count},'
+        elif max_count:
+            query += f'\nWHERE Accounting.count < {max_count},'
+
+        if name:
+            query += f'\nWHERE Goods.name == "{name}",'
+
+        if article:
+            query += f'\nWHERE Goods.article == "{article}",'
+
+        if category:
+            query += f'\nWHERE Goods.category == "{category}",'
+
+        if warehouse_id:
+            query += f'\nWhere Accounting.wharehouse_id == {warehouse_id},'
+
+        query = query[:-1] + '\nGROUP BY Goods.id'
+        cursor.execute(query)
         return cursor.fetchall()
+
     return inner
 
 
-def filter_clients_by_name(name: str):
+def filter_clients(name: str):
     def inner(cursor):
         query = """
             SELECT * FROM Clients 
@@ -252,6 +289,7 @@ def filter_clients_by_name(name: str):
         """
         cursor.execute(query, (f"%{name}%",))
         return cursor.fetchall()
+
     return inner
 
 
@@ -263,6 +301,7 @@ def filter_orders(name: str):
         """
         cursor.execute(query, (f"%{name}%",))
         return cursor.fetchall()
+
     return inner
 
 
@@ -274,6 +313,7 @@ def filter_wharehouses(name: str):
         """
         cursor.execute(query, (f"%{name}%",))
         return cursor.fetchall()
+
     return inner
 
 
@@ -282,11 +322,11 @@ if __name__ == "__main__":
 
     print(db.get_column_names('Goods'))
     db.set_data(table_name='Goods', data=['шляпа', 'головной убор крестьянина, которому позавидует любой барин',
-                                          'головные уборы; одежда', 'размер: L; цвет: светлый; матриал: солома', None, '15'])
+                                          'головные уборы; одежда', 'размер: L; цвет: светлый; матриал: солома', None,
+                                          '15'])
 
     # print(db.get_data('Goods', 1))
     print(db.get_column_names('Goods'))
-
 
     # print(db.table_filling("Receipt"))
     # print(db.operations())
@@ -353,7 +393,6 @@ if __name__ == "__main__":
 #                photo,
 #                'бесценен'])
 # print(db.get_data('Goods', 0))
-
 
 
 # шлак
