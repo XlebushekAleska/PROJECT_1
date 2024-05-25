@@ -43,6 +43,17 @@ class Database:
         self.__conn.commit()
         return cursor.fetchall()
 
+    def change_data(self, table_name: str, row_id: int, data: dict):
+        query = (f'''UPDATE {table_name}
+                     SET\n
+                 ''')
+        for key, value in data.items():
+            query += f'"{key}" = "{value}",\n'
+        query = query[:-2] + f'\nWHERE id = {row_id}'
+        print(query)
+        self.__cur.execute(query)
+        self.__conn.commit()
+
     def warehouse_selection(self, warehouse_id):
         query = f"""SELECT 
                         Goods.id AS "id",
@@ -172,7 +183,8 @@ class Database:
         return data, column_names
         # вернуть список из строк таблицы базы данных для заполнения qtablewidget
 
-    def filter_goods(self, min_price: float = None, max_price: float = None, min_count: int = None, max_count: int = None,
+    def filter_goods(self, min_price: float = None, max_price: float = None, min_count: int = None,
+                     max_count: int = None,
                      name: str = None, article: str = None, category: str = None, warehouse_id: int = None):
 
         query = ("""SELECT 
@@ -384,8 +396,17 @@ def test2(x: str) -> str:
 
 if __name__ == "__main__":
     db = Database("Database1.db")
+    db.change_data('Goods', 4, {'name': 'варежки',
+                                'article': 'нереальные перчатки крутого гэнгсты. в них тебя будут бояться и уважать все алкаши с района',
+                                'category': 'одежда; верхняя одежда',
+                                'charasteristic': 'размер: S; цвет: чёрный панк',
+                                'picture': None,
+                                'price': '20'
+                                })
 
-    print(db.filter_goods())
+    # db.set_data('Goods', ['перчатки', 'нереальные перчатки крутого гэнгсты. в них тебя будут бояться и уважать все алкаши с района', 'одежда; верхняя одежда', 'размер: S; цвет: чёрный панк', None, '20'])
+
+    # print(db.filter_goods())
 
     # db.delete_data('Goods', 2)
 
