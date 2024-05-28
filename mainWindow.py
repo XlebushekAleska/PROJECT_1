@@ -4,7 +4,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
 from database_class import Database
 from actsWindow import Ui_Dialog_Acts
-from detailsWindow import Ui_Dialog_Details
+from detailsWindow import Ui_Details
 from filterWindow import Ui_Dialog_filter
 
 class Ui_Dialog(object):
@@ -207,17 +207,22 @@ class Ui_Dialog(object):
         current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
         item = current_table.item(row, 0)
         item_id = item.text()
-        content = self.db.get_data("Goods", item_id)
 
-        result = '\n\n'.join(str(item) for item in content[0])
-
-        if item is not None:
-            QtWidgets.QMessageBox.information(None, "Cell Double Clicked", result)
+        if table_index == 0:
+            table_name = "Goods"
+        elif table_index == 1:
+            table_name = "Warehouses"
+        elif table_index == 2:
+            table_name = "Orders"
+        elif table_index == 3:
+            table_name = "Clients"
+        elif table_index == 4:
+            return
         
-        dialog = QtWidgets.QDialog()
-        ui_dialog = Ui_Dialog_Details()
-        ui_dialog.setupUi(dialog)
-        dialog.exec_()
+        content = self.db.get_data(table_name, item_id)
+
+        self.details_window = Ui_Details(content, table_name=table_name)
+
 
 
     def actsWindowShow(self, index):
