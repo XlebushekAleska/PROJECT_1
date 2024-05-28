@@ -218,10 +218,8 @@ class Database:
             query += f'\nWHERE Goods.name == "{name}",'
         if article:
             query += f'\nWHERE Goods.article == "{article}",'
-
         if category:
             query += f'\nWHERE (SELECT id FROM Categories WHERE category = {category}) == GoodsCategories.category_id,'
-
         if warehouse_id:
             query += f'\nWhere Accounting.wharehouse_id == {warehouse_id},'
 
