@@ -298,10 +298,49 @@ class Ui_Dialog(object):
     def filterWindowShow(self):
         table_index = self.tabWidget.currentIndex()
 
-        dialog = QtWidgets.QDialog()
-        ui_dialog = Ui_Dialog_filter()
-        ui_dialog.setupUi(dialog, table_index=table_index)
-        dialog.exec_()
+        self.filter_window = Ui_Dialog_filter(table_index)
+        self.filter_window.apply_button.clicked.connect(self.reload_with_filter)
+
+        self.filter_window.exec_()
+
+    def reload_with_filter(self):
+        table_index = self.tabWidget.currentIndex()
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+
+        config = self.filter_window.config
+        filter = self.filter_window.finish_filter
+
+        if config == 0:
+            data = self.db.filter_goods(**filter)
+        elif config == 1:
+            data = self.db.filter_wharehouses(**filter)
+        elif config == 2:
+            data = self.db.filter_orders(**filter)
+        elif config == 3:
+            data = self.db.filter_clients(**filter)
+        elif config == 4:
+            data = self.db.table_filling(filter['операция'])
+            table_tabs = data[1]
+
+            current_table.setColumnCount(len(table_tabs))
+            for index, value in enumerate(table_tabs):
+                item = QtWidgets.QTableWidgetItem()
+                current_table.setHorizontalHeaderItem(index, item)
+                item.setText(value)
+
+        
+        content = data[0]
+        
+        if len(content) > 0:
+            current_table.setRowCount(len(content))
+            for index_row, row in enumerate(content):
+                for index_value, value in enumerate(row):
+                    item = QtWidgets.QTableWidgetItem(str(value))
+                    current_table.setItem(index_row, index_value, item)
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+        else:
+            current_table.setRowCount(1)
+
 
     def show_popup(self, index):
         button = self.tabWidget.findChild(QtWidgets.QPushButton, f"pushButton_{index}")

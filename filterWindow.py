@@ -1,78 +1,105 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QGridLayout
+from PyQt5.QtCore import Qt
 
 
-class Ui_Dialog_filter(object):
-    def setupUi(self, Dialog_filter, table_index):
-        self.table_index = table_index
-        Dialog_filter.setObjectName("Dialog_filter")
-        Dialog_filter.resize(334, 416)
-        self.label = QtWidgets.QLabel(Dialog_filter)
-        self.label.setGeometry(QtCore.QRect(0, 40, 91, 20))
-        self.label.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.label.setObjectName("label")
-        self.lineEdit = QtWidgets.QLineEdit(Dialog_filter)
-        self.lineEdit.setGeometry(QtCore.QRect(120, 40, 91, 21))
-        self.lineEdit.setObjectName("lineEdit")
-        self.lineEdit_2 = QtWidgets.QLineEdit(Dialog_filter)
-        self.lineEdit_2.setGeometry(QtCore.QRect(242, 40, 81, 21))
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.label_2 = QtWidgets.QLabel(Dialog_filter)
-        self.label_2.setGeometry(QtCore.QRect(100, 40, 16, 16))
-        self.label_2.setObjectName("label_2")
-        self.label_3 = QtWidgets.QLabel(Dialog_filter)
-        self.label_3.setGeometry(QtCore.QRect(220, 40, 16, 16))
-        self.label_3.setObjectName("label_3")
-        self.label_4 = QtWidgets.QLabel(Dialog_filter)
-        self.label_4.setGeometry(QtCore.QRect(0, 80, 101, 20))
-        self.label_4.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.label_4.setObjectName("label_4")
-        self.lineEdit_3 = QtWidgets.QLineEdit(Dialog_filter)
-        self.lineEdit_3.setGeometry(QtCore.QRect(110, 80, 211, 21))
-        self.lineEdit_3.setAlignment(QtCore.Qt.AlignCenter)
-        self.lineEdit_3.setObjectName("lineEdit_3")
-        self.label_5 = QtWidgets.QLabel(Dialog_filter)
-        self.label_5.setGeometry(QtCore.QRect(10, 110, 91, 16))
-        self.label_5.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.label_5.setObjectName("label_5")
-        self.comboBox = QtWidgets.QComboBox(Dialog_filter)
-        self.comboBox.setGeometry(QtCore.QRect(110, 110, 221, 32))
-        self.comboBox.setObjectName("comboBox")
-        self.pushButton = QtWidgets.QPushButton(Dialog_filter)
-        self.pushButton.setGeometry(QtCore.QRect(162, 380, 161, 32))
-        self.pushButton.setObjectName("pushButton")
-        self.pushButton.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.pushButton_2 = QtWidgets.QPushButton(Dialog_filter)
-        self.pushButton_2.setGeometry(QtCore.QRect(10, 380, 151, 32))
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.pushButton_2.setFocusPolicy(QtCore.Qt.NoFocus)
+class Ui_Dialog_filter(QDialog):
+    def __init__(self, config):
+        super().__init__()
+        self.setWindowTitle("Фильтры")
 
-        self.pushButton_2.clicked.connect(self.reset)
+        self.config = config
+        self.filter_widgets = {}
 
-        self.retranslateUi(Dialog_filter)
-        QtCore.QMetaObject.connectSlotsByName(Dialog_filter)
+        self.layout = QVBoxLayout()
 
-    def retranslateUi(self, Dialog_filter):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog_filter.setWindowTitle(_translate("Dialog_filter", "Фильтр"))
-        self.label.setText(_translate("Dialog_filter", "Количество"))
-        self.label_2.setText(_translate("Dialog_filter", "от"))
-        self.label_3.setText(_translate("Dialog_filter", "до"))
-        self.label_4.setText(_translate("Dialog_filter", "Название"))
-        self.label_5.setText(_translate("Dialog_filter", "Склад"))
-        self.pushButton.setText(_translate("Dialog_filter", "Применить"))
-        self.pushButton_2.setText(_translate("Dialog_filter", "Cброс"))
+        self.init_ui()
+        self.setLayout(self.layout)
 
-    def reset(self):
-        self.lineEdit.clear()
-        self.lineEdit_2.clear()
-        self.lineEdit_3.clear()
+    def init_ui(self):
+        grid_layout = QGridLayout()
+
+        if self.config == 0:
+            self.create_filter_widgets(['min_price', 'max_price', 'min_count', 'max_count', 'name', 'article', 'category', 'warehouse_id'], grid_layout)
+        elif self.config == 1:
+            self.create_filter_widgets(['name', 'adress'], grid_layout)
+        elif self.config == 2:
+            self.create_filter_widgets(['first_date', 'last_date', 'status', 'first_price', 'last_price', 'name'], grid_layout)
+        elif self.config == 3:
+            self.create_filter_widgets(['min_orders_count' , 'max_orders_count', 'name'], grid_layout)
+        elif self.config == 4:
+            self.create_filter_widgets(['операция'], grid_layout)
+
+        self.apply_button = QPushButton("Применить")
+        self.clear_button = QPushButton("Очистить")
+        self.clear_button.setFocusPolicy(Qt.NoFocus)
+        self.apply_button.clicked.connect(self.apply_filters)
+        self.clear_button.clicked.connect(self.clear_filters)
+
+        self.layout.addLayout(grid_layout)
+        self.layout.addWidget(self.clear_button)
+        self.layout.addWidget(self.apply_button)
+
+    def create_filter_widgets(self, filter_names, layout):
+        row = 0
+        for filter_name in filter_names:
+            if 'min' in filter_name or "first" in filter_name:
+                if 'min' in filter_name:
+                    lb_text = filter_name.replace("min_", " ") + " from"
+                else:
+                    lb_text = filter_name.replace("first_", " ") + " from"
+                label_from = QLabel(lb_text.replace('_', ' '))
+                line_edit_min = QLineEdit()
+                label_to = QLabel("to")
+                line_edit_max = QLineEdit()
+                layout.addWidget(label_from, row, 1)
+                layout.addWidget(line_edit_min, row, 2)
+                layout.addWidget(label_to, row, 3)
+                layout.addWidget(line_edit_max, row, 4)
+                self.filter_widgets[filter_name] = (line_edit_min, line_edit_max)
+            elif 'max' in filter_name or 'last_' in filter_name:
+                continue
+            else:
+                label = QLabel(filter_name.replace('_', ' '))
+                label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                line_edit = QLineEdit()
+                layout.addWidget(label, row, 0, 1, 2)
+                layout.addWidget(line_edit, row, 2, 1, 4)
+                self.filter_widgets[filter_name] = line_edit
+            row += 1
+
+    def apply_filters(self):
+        filters = {}
+        for filter_name, widget in self.filter_widgets.items():
+            if isinstance(widget, tuple):
+                line_edit_min, line_edit_max = widget
+                if line_edit_min.text() != "":
+                    filters[filter_name] = line_edit_min.text()
+                if line_edit_max.text() != "":
+                    if "min" in filter_name:
+                        max_name = filter_name.replace("min_", "max_")
+                    else:
+                        max_name = filter_name.replace("first_", "last_")
+                    filters[max_name] = line_edit_max.text()
+            else:
+                if widget.text() != "":
+                    filters[filter_name] = widget.text()
+
+        print(filters)
+        self.finish_filter = filters
+        self.accept()
+
+    def clear_filters(self):
+        for widget in self.filter_widgets.values():
+            if isinstance(widget, tuple):
+                line_edit_min, line_edit_max = widget
+                line_edit_min.clear()
+                line_edit_max.clear()
+            else:
+                widget.clear()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog_filter = QtWidgets.QDialog()
-    ui = Ui_Dialog_filter()
-    ui.setupUi(Dialog_filter, 0)
-    Dialog_filter.show()
-    sys.exit(app.exec_())
+    app = QApplication(sys.argv)
+    dialog = Ui_Dialog_filter(0)
+    dialog.exec_()
