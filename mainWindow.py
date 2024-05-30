@@ -1,11 +1,12 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtWidgets import QShortcut, QApplication, QMessageBox
 from database_class import Database
 from actsWindow import Ui_Dialog_Acts
 from detailsWindow import Ui_Details
 from filterWindow import Ui_Dialog_filter
+from addWindow import Ui_Add_Window
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -16,20 +17,24 @@ class Ui_Dialog(object):
         self.tabWidget.setObjectName("tabWidget")
 
         self.db = Database("Database1.db")
-        goods_data = self.db.table_filling("Goods")
-        houses_data = self.db.table_filling("Warehouses")
-        orders_data = self.db.table_filling("Orders")
-        clients_data = self.db.table_filling("Clients")
-        acts_data = self.db.operations()
+        self.goods_data = self.db.table_filling("Goods")
+        self.houses_data = self.db.table_filling("Warehouses")
+        self.orders_data = self.db.table_filling("Orders")
+        self.clients_data = self.db.table_filling("Clients")
+        self.acts_data = self.db.operations()
         table_tabs = []
-        table_tabs.append(goods_data[1])
-        table_tabs.append(houses_data[1])
-        table_tabs.append(orders_data[1])
-        table_tabs.append(clients_data[1])
-        table_tabs.append(acts_data[1])
+        table_tabs.append(self.goods_data[1])
+        table_tabs.append(self.houses_data[1])
+        table_tabs.append(self.orders_data[1])
+        table_tabs.append(self.clients_data[1])
+        table_tabs.append(self.acts_data[1])
+
+        main_window = QApplication.instance().activeWindow()
+        if main_window:
+            main_window.close()
 
         delete_shortcut = QShortcut(QKeySequence(Qt.Key_Backspace), Dialog)
-        delete_shortcut.activated.connect(self.delete_row)
+        delete_shortcut.activated.connect(self.delete_object)
 
         for i in range(5):
             tab = QtWidgets.QWidget()
@@ -51,8 +56,8 @@ class Ui_Dialog(object):
                         button_name = "добавить"
                     elif j == 2:
                         button_name = "перезагрузить"
-                    elif j == 3:
-                        button_name = "сохранить"
+                    # elif j == 3:
+                    #     button_name = "сохранить"
                     else:
                         continue
                 else:
@@ -88,20 +93,20 @@ class Ui_Dialog(object):
 
             content = []
             if i == 0:
-                if 0 < len(goods_data[0]):
-                    content = goods_data[0]
+                if 0 < len(self.goods_data[0]):
+                    content = self.goods_data[0]
             elif i == 1:
-                if 0 < len(houses_data[0]):
-                    content = houses_data[0]
+                if 0 < len(self.houses_data[0]):
+                    content = self.houses_data[0]
             elif i == 2:
-                if 0 < len(orders_data[0]):
-                    content = orders_data[0]
+                if 0 < len(self.orders_data[0]):
+                    content = self.orders_data[0]
             elif i == 3:
-                if 0 < len(clients_data[0]):
-                    content = clients_data[0]
+                if 0 < len(self.clients_data[0]):
+                    content = self.clients_data[0]
             else:
-                if 0 < len(acts_data[0]):
-                    content = acts_data[0]
+                if 0 < len(self.acts_data[0]):
+                    content = self.acts_data[0]
 
             if len(content) > 0:
                 tableWidget.setRowCount(len(content))
@@ -119,7 +124,7 @@ class Ui_Dialog(object):
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
-                button.clicked.connect(self.add_row)
+                button.clicked.connect(self.add_object)
         
         for i in [1, 11, 21, 31, 41]:
             button_name = f"pushButton_{i}"
@@ -127,15 +132,21 @@ class Ui_Dialog(object):
             if button:
                 button.clicked.connect(self.filterWindowShow)
         
+        for i in [3, 13, 23, 33, 44]:
+            button_name = f"pushButton_{i}"
+            button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
+            if button:
+                button.clicked.connect(self.reload_table)
+        
         for i in [43]:
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
                 button.clicked.connect(lambda _, index=(i): self.show_popup(index))
 
-        self.popup.button1.clicked.connect(lambda _, index=(1): self.actsWindowShow(index))
-        self.popup.button2.clicked.connect(lambda _, index=(2): self.actsWindowShow(index))
-        self.popup.button3.clicked.connect(lambda _, index=(3): self.actsWindowShow(index))
+        self.popup.button1.clicked.connect(lambda _, table_name=("Receipt"): self.add_act_object(table_name))
+        self.popup.button2.clicked.connect(lambda _, table_name=("Write_off"): self.add_act_object(table_name))
+        self.popup.button3.clicked.connect(lambda _, table_name=("Transfer"): self.add_act_object(table_name))
 
         for i in range(5):
             current_tb_widget = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{i+1}")
@@ -146,7 +157,7 @@ class Ui_Dialog(object):
             button_name = f"pushButton_{i}"
             button = self.tabWidget.findChild(QtWidgets.QPushButton, button_name) 
             if button:
-                button.clicked.connect(lambda _, index=(i-42): self.actsWindowShow(index))
+                button.clicked.connect(lambda _, table_name=("Sale"): self.add_act_object(table_name))
         
         
         self.retranslateUi(Dialog)
@@ -176,27 +187,78 @@ class Ui_Dialog(object):
             current_tabel = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
             current_tabel.selectRow(row)
 
-    def add_row(self):
+    def add_act_object(self, table_name):
+        self.add_window = Ui_Add_Window(table_name)
+
+
+
+    def add_object(self):
         table_index = self.tabWidget.currentIndex()
-        current_tabel = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
-        current_tabel.insertRow(0)
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table.insertRow(0)
 
         item = QtWidgets.QTableWidgetItem("autofill")
-        current_tabel.setItem(0, 0, item)
+        current_table.setItem(0, 0, item)
         item.setForeground(QtCore.Qt.gray)
         item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
 
-        for col in range(current_tabel.columnCount()):
-            if col > 0:
-                item = QtWidgets.QTableWidgetItem()
-                current_tabel.setItem(0, col, item)
 
-    def delete_row(self):
+        if table_index == 0:
+            table_name = "Goods"
+        elif table_index == 1:
+            table_name = "Warehouses"
+        elif table_index == 2:
+            table_name = "Orders"
+        elif table_index == 3:
+            table_name = "Clients"
+        elif table_index == 4:
+            return
+        
+        self.add_window = Ui_Add_Window(table_name)
+        self.add_window.btn_add.clicked.connect(self.fill_add_row)
+
+    def fill_add_row(self):
+        table_index = self.tabWidget.currentIndex()
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+
+        insert_data = self.add_window.finish_dict
+        self.add_window.close()
+        for col, value in enumerate(insert_data):
+            if col > 0:
+                item = QtWidgets.QTableWidgetItem(str(value))
+                current_table.setItem(0, col, item)
+
+    def delete_object(self):
+        table_index = self.tabWidget.currentIndex()
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        row_number = current_table.currentRow()
+        item = current_table.item(row_number, 0)
+        id_oblect = item.text()
+
+        if table_index == 0:
+            table_name = "Goods"
+        elif table_index == 1:
+            table_name = "Warehouses"
+        elif table_index == 2:
+            table_name = "Orders"
+        elif table_index == 3:
+            table_name = "Clients"
+        elif table_index == 4:
+            return
+
+        reply = QMessageBox.question(Dialog, 'Confirmation', 'Уверены, что хотите удалить этот объект?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            self.db.delete_data(table_name, id_oblect)
+            self.show_red_row()
+
+        
+
+    def show_red_row(self):
         table_index = self.tabWidget.currentIndex()
         current_tabel = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
         current_tabel.clearSelection()
         row_number = current_tabel.currentRow()
-        # item = self.current_tabel.item(row_number, 0)
         red = QtGui.QColor(255, 143, 135)
 
         for col in range(current_tabel.columnCount()):
@@ -222,6 +284,7 @@ class Ui_Dialog(object):
         content = self.db.get_data(table_name, item_id)
 
         self.details_window = Ui_Details(content, table_name=table_name)
+        self.details_window.btn_delete.clicked.connect(self.show_red_row)
 
 
 
@@ -233,9 +296,11 @@ class Ui_Dialog(object):
         dialog.exec_()
 
     def filterWindowShow(self):
+        table_index = self.tabWidget.currentIndex()
+
         dialog = QtWidgets.QDialog()
         ui_dialog = Ui_Dialog_filter()
-        ui_dialog.setupUi(dialog)
+        ui_dialog.setupUi(dialog, table_index=table_index)
         dialog.exec_()
 
     def show_popup(self, index):
@@ -250,6 +315,44 @@ class Ui_Dialog(object):
         self.popup.set_button_size(button_width, button_height)
 
         self.popup.show()
+
+    def reload_table(self):
+        table_index = self.tabWidget.currentIndex()
+        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+
+        content = []
+
+        if table_index == 0:
+            self.goods_data = self.db.table_filling("Goods")
+            if 0 < len(self.goods_data[0]):
+                content = self.goods_data[0]
+        elif table_index == 1:
+            self.houses_data = self.db.table_filling("Warehouses")
+            if 0 < len(self.houses_data[0]):
+                content = self.houses_data[0]
+        elif table_index == 2:
+            self.orders_data = self.db.table_filling("Orders")
+            if 0 < len(self.orders_data[0]):
+                content = self.orders_data[0]
+        elif table_index == 3:
+            self.clients_data = self.db.table_filling("Clients")
+            if 0 < len(self.clients_data[0]):
+                content = self.clients_data[0]
+        else:
+            self.acts_data = self.db.operations()
+            if 0 < len(self.acts_data[0]):
+                content = self.acts_data[0]
+        if len(content) > 0:
+            current_table.setRowCount(len(content))
+            for index_row, row in enumerate(content):
+                for index_value, value in enumerate(row):
+                    item = QtWidgets.QTableWidgetItem(str(value))
+                    current_table.setItem(index_row, index_value, item)
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+        else:
+            current_table.setRowCount(1)
+
+
 
 class PopupWidget(QtWidgets.QFrame):
     def __init__(self, parent=None):

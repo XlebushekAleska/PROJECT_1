@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from  PyQt5.QtWidgets import QMainWindow
 from mainWindow import Ui_Dialog
 
 
@@ -95,13 +96,14 @@ class Ui_MainWindow(object):
         self.pushButton.setText(_translate("MainWindow", "авторизоваться"))
 
     def mainWindowShow(self):
-        dialog = QtWidgets.QDialog()
-        ui_dialog = Ui_Dialog()
-        ui_dialog.setupUi(dialog)
         login = self.lineEdit.text()
         password = self.lineEdit_2.text()
 
         if login == "admin" and password == "admin":
+            dialog = QtWidgets.QDialog()
+            ui_dialog = Ui_Dialog()
+            ui_dialog.setupUi(dialog)
+            dialog.main_window = self
             dialog.exec_()
         else:
             QtWidgets.QMessageBox.warning(self.centralwidget, "Ошибка", "Неправильный логин или пароль")

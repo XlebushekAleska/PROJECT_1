@@ -2,7 +2,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_Dialog_filter(object):
-    def setupUi(self, Dialog_filter):
+    def setupUi(self, Dialog_filter, table_index):
+        self.table_index = table_index
         Dialog_filter.setObjectName("Dialog_filter")
         Dialog_filter.resize(334, 416)
         self.label = QtWidgets.QLabel(Dialog_filter)
@@ -72,6 +73,6 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     Dialog_filter = QtWidgets.QDialog()
     ui = Ui_Dialog_filter()
-    ui.setupUi(Dialog_filter)
+    ui.setupUi(Dialog_filter, 0)
     Dialog_filter.show()
     sys.exit(app.exec_())

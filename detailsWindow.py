@@ -35,21 +35,21 @@ class Ui_Details(QWidget):
             self.widgets[lbl.text()] = widget
             form_layout.addRow(lbl, widget)
         
-        btn_delete = QPushButton('Удалить')
+        self.btn_delete = QPushButton('Удалить')
         self.btn_change = QPushButton('Измененить')
-        btn_save = QPushButton('Сохранить')
+        self.btn_save = QPushButton('Сохранить')
 
         btn_layout = QHBoxLayout()
-        btn_layout.addWidget(btn_delete)
+        btn_layout.addWidget(self.btn_delete)
         btn_layout.addWidget(self.btn_change)
-        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(self.btn_save)
 
         delete_shortcut = QShortcut(QKeySequence(Qt.Key_Backspace), self)
         delete_shortcut.activated.connect(self.showConfirmationDialog)
 
         self.btn_change.clicked.connect(self.change_cancel_button)
-        btn_delete.clicked.connect(self.showConfirmationDialog)
-        btn_save.clicked.connect(self.return_changes)
+        self.btn_delete.clicked.connect(self.showConfirmationDialog)
+        self.btn_save.clicked.connect(self.return_changes)
         
         main_layout = QVBoxLayout()
         main_layout.addLayout(btn_layout)
@@ -109,6 +109,7 @@ class Ui_Details(QWidget):
         
         if reply == QMessageBox.Yes:
             self.delete_item()
+            self.close()
 
 
 if __name__ == '__main__':
