@@ -49,8 +49,9 @@ class Ui_Add_Window(QWidget):
     def cancel_button(self):
         reversed_dict = {v: k for k, v in self.widgets.items()}
         for value, key in reversed_dict.items():
-                widg = self.widgets.get(key)
-                widg.setText("")
+                if key != 'id':
+                    widg = self.widgets.get(key)
+                    widg.setText("")
 
     
     def add_object(self):

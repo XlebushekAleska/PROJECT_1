@@ -319,7 +319,19 @@ class Ui_Dialog(object):
         elif config == 3:
             data = self.db.filter_clients(**filter)
         elif config == 4:
-            data = self.db.table_filling(filter['операция'])
+            inter = filter['операция']
+            if inter != "последние":
+                if inter == "продажа":
+                    tb_name = "Sale"
+                elif inter == "приемка":
+                    tb_name = "Receipt"
+                elif inter == "списание":
+                    tb_name = "Write_off"
+                elif inter == "перемещение":
+                    tb_name = "Transfer"
+                data = self.db.table_filling(tb_name)
+            else:
+                data = self.db.operations()
             table_tabs = data[1]
 
             current_table.setColumnCount(len(table_tabs))

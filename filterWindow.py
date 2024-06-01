@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QGridLayout
+from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QGridLayout, QComboBox
 from PyQt5.QtCore import Qt
 
 
@@ -30,19 +30,29 @@ class Ui_Dialog_filter(QDialog):
             self.create_filter_widgets(['операция'], grid_layout)
 
         self.apply_button = QPushButton("Применить")
-        self.clear_button = QPushButton("Очистить")
-        self.clear_button.setFocusPolicy(Qt.NoFocus)
         self.apply_button.clicked.connect(self.apply_filters)
-        self.clear_button.clicked.connect(self.clear_filters)
-
         self.layout.addLayout(grid_layout)
-        self.layout.addWidget(self.clear_button)
+
+        if self.config != 4:
+            self.clear_button = QPushButton("Очистить")
+            self.clear_button.setFocusPolicy(Qt.NoFocus)
+            self.clear_button.clicked.connect(self.clear_filters)
+            self.layout.addWidget(self.clear_button)
+        
         self.layout.addWidget(self.apply_button)
 
     def create_filter_widgets(self, filter_names, layout):
         row = 0
         for filter_name in filter_names:
-            if 'min' in filter_name or "first" in filter_name:
+            if filter_name == 'операция':
+                label = QLabel(filter_name.replace('_', ' '))
+                label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                combo_box = QComboBox()
+                combo_box.addItems(["последние", "продажа", "приемка", "списание", "перемещение"])
+                layout.addWidget(label, row, 0, 1, 2)
+                layout.addWidget(combo_box, row, 2, 1, 4)
+                self.filter_widgets[filter_name] = combo_box
+            elif 'min' in filter_name or "first" in filter_name:
                 if 'min' in filter_name:
                     lb_text = filter_name.replace("min_", " ") + " from"
                 else:
@@ -81,10 +91,13 @@ class Ui_Dialog_filter(QDialog):
                         max_name = filter_name.replace("first_", "last_")
                     filters[max_name] = line_edit_max.text()
             else:
-                if widget.text() != "":
-                    filters[filter_name] = widget.text()
+                if isinstance(widget, QComboBox):
+                    filters[filter_name] = widget.currentText()
+                else:
+                    if widget.text() != "":
+                        filters[filter_name] = widget.text()
 
-        print(filters)
+
         self.finish_filter = filters
         self.accept()
 
@@ -94,6 +107,8 @@ class Ui_Dialog_filter(QDialog):
                 line_edit_min, line_edit_max = widget
                 line_edit_min.clear()
                 line_edit_max.clear()
+            elif isinstance(widget, QComboBox):
+                widget.setCurrentIndex(0)
             else:
                 widget.clear()
 
