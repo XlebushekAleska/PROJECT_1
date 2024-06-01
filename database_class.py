@@ -12,16 +12,16 @@ class Database:
         return [description[0] for description in self.__cur.description]
 
     def set_data(self, table_name: str, data: list):
-        self.__cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
-        column_names = [description[0] for description in self.__cur.description]
-        column_names.remove('id')
-        placeholders = ', '.join('?' for _ in range(len(data)))
-        column_names = ', '.join(column_names)
-        print(placeholders)
-        query = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
-        print(query)
-        self.__cur.execute(query, data)
-        self.__conn.commit()
+       self.__cur.execute(f"SELECT * FROM {table_name} LIMIT 0")
+       column_names = [description[0] for description in self.__cur.description]
+       column_names.remove('id')
+       placeholders = ', '.join('?' for _ in range(len(data)))
+       column_names = ', '.join(column_names)
+       print(placeholders)
+       query = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
+       print(query)
+       self.__cur.execute(query, data)
+       self.__conn.commit()
 
     def get_data(self, table_name, row_id):
         query = f"SELECT * FROM {table_name} WHERE id=?"
@@ -198,8 +198,6 @@ class Database:
                         Goods
                     LEFT JOIN
                         Accounting ON Goods.id = Accounting.good_id 
-                    LEFT JOIN
-                        GoodsCategories ON Goods.id = GoodsCategories.good_id 
                     """)
 
         if min_price and max_price:
@@ -219,7 +217,7 @@ class Database:
         if article:
             query += f'\nWHERE Goods.article == "{article}",'
         if category:
-            query += f'\nWHERE (SELECT id FROM Categories WHERE category = {category}) == GoodsCategories.category_id,'
+            query += f'\nWHERE Goods.category = {category},'
         if warehouse_id:
             query += f'\nWhere Accounting.wharehouse_id == {warehouse_id},'
 
@@ -396,7 +394,7 @@ def test2(x: str) -> str:
 
 if __name__ == "__main__":
     db = Database("Database1.db")
-    db.set_data('Goods', ['wef', 'rfw', 'rfwr', 'frwf', None, '123'])
+    # db.set_data('Goods', ['wef', 'rfw', 'rfwr', 'frwf', None, '123'])
 
     # db.change_data('Goods', 4, {'name': 'варежки',
     #                             'article': 'нереальные перчатки крутого гэнгсты. в них тебя будут бояться и уважать все алкаши с района',
@@ -406,7 +404,7 @@ if __name__ == "__main__":
     #                             'price': '20'
     #                             })
 
-    # db.set_data('Goods', ['перчатки', 'нереальные перчатки крутого гэнгсты. в них тебя будут бояться и уважать все алкаши с района', 'одежда; верхняя одежда', 'размер: S; цвет: чёрный панк', None, '20'])
+    db.set_data('Goods', ['перчатки', 'нереальные перчатки крутого гэнгсты. в них тебя будут бояться и уважать все алкаши с района', 'одежда', 'размер: S; цвет: чёрный панк', None, '20'])
 
     # print(db.filter_goods())
 

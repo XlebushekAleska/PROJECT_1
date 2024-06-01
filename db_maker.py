@@ -16,23 +16,6 @@ with con:
     """)
 
     con.execute("""
-                    CREATE TABLE IF NOT EXISTS Categories (
-                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                        category VARCHAR(100) NOT NULL
-                    );
-                """)
-
-    con.execute("""
-                    CREATE TABLE IF NOT EXISTS GoodsCategories (
-                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                        good_id INTEGER NOT NULL,
-                        category_id INTEGER NOT NULL,
-                        FOREIGN KEY (good_id) REFERENCES Goods (id),
-                        FOREIGN KEY (category_id) REFERENCES Categories (id)
-                    );
-                """)
-
-    con.execute("""
         CREATE TABLE IF NOT EXISTS Warehouses (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             adress VARCHAR(150) NOT NULL,
