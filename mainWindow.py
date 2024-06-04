@@ -29,6 +29,8 @@ class Ui_Dialog(object):
         table_tabs.append(self.clients_data[1])
         table_tabs.append(self.acts_data[1])
 
+        self.del_buf = {}
+
         main_window = QApplication.instance().activeWindow()
         if main_window:
             main_window.close()
@@ -56,8 +58,6 @@ class Ui_Dialog(object):
                         button_name = "добавить"
                     elif j == 2:
                         button_name = "перезагрузить"
-                    # elif j == 3:
-                    #     button_name = "сохранить"
                     else:
                         continue
                 else:
@@ -116,7 +116,7 @@ class Ui_Dialog(object):
                         tableWidget.setItem(index_row, index_value, item)
                         item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
             else:
-                tableWidget.setRowCount(1)
+                tableWidget.setRowCount(0)
 
         self.popup = PopupWidget(Dialog)
 
@@ -190,19 +190,9 @@ class Ui_Dialog(object):
     def add_act_object(self, table_name):
         self.add_window = Ui_Add_Window(table_name)
 
-
-
-    def add_object(self):
+    def get_current_table_name(self):
         table_index = self.tabWidget.currentIndex()
         current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
-        current_table.insertRow(0)
-
-        item = QtWidgets.QTableWidgetItem("autofill")
-        current_table.setItem(0, 0, item)
-        item.setForeground(QtCore.Qt.gray)
-        item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-
-
         if table_index == 0:
             table_name = "Goods"
         elif table_index == 1:
@@ -212,14 +202,28 @@ class Ui_Dialog(object):
         elif table_index == 3:
             table_name = "Clients"
         elif table_index == 4:
+            table_name = None
+        
+        return current_table, table_name
+
+
+    def add_object(self):
+        current_table, table_name = self.get_current_table_name()
+        if table_name == None:
             return
+        
+        current_table.insertRow(0)
+
+        item = QtWidgets.QTableWidgetItem("autofill")
+        current_table.setItem(0, 0, item)
+        item.setForeground(QtCore.Qt.gray)
+        item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
         
         self.add_window = Ui_Add_Window(table_name)
         self.add_window.btn_add.clicked.connect(self.fill_add_row)
 
     def fill_add_row(self):
-        table_index = self.tabWidget.currentIndex()
-        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table, _ = self.get_current_table_name()
 
         insert_data = self.add_window.finish_dict
         self.add_window.close()
@@ -229,62 +233,67 @@ class Ui_Dialog(object):
                 current_table.setItem(0, col, item)
 
     def delete_object(self):
-        table_index = self.tabWidget.currentIndex()
-        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table, table_name = self.get_current_table_name()
+        if table_name == None:
+            return
+        
         row_number = current_table.currentRow()
         item = current_table.item(row_number, 0)
-        id_oblect = item.text()
-
-        if table_index == 0:
-            table_name = "Goods"
-        elif table_index == 1:
-            table_name = "Warehouses"
-        elif table_index == 2:
-            table_name = "Orders"
-        elif table_index == 3:
-            table_name = "Clients"
-        elif table_index == 4:
-            return
-
-        reply = QMessageBox.question(Dialog, 'Confirmation', 'Уверены, что хотите удалить этот объект?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        id_object = item.text()
         
-        if reply == QMessageBox.Yes:
-            self.db.delete_data(table_name, id_oblect)
-            self.show_red_row()
+        red = QtGui.QColor(255, 143, 135)
+        default_color = QtGui.QColor(QtCore.Qt.white)
+        reply2 = None
+        reply1 = None
+        
+        if item:
+            background_color = item.background().color()
+            target_color = red
+            if background_color == target_color:
+                reply2 = QMessageBox.question(Dialog, 'Confirmation', 'Уверены, что хотите отменить удаление этого объекта?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            else:
+                reply1 = QMessageBox.question(Dialog, 'Confirmation', 'Уверены, что хотите удалить этот объект?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply1 == QMessageBox.Yes:
+            self.show_color_row(red)
+            if table_name in self.del_buf:
+                self.del_buf[table_name].append(id_object)
+            else:
+                self.del_buf[table_name] = [id_object]
+        
+        if reply2 is not None and reply2 == QMessageBox.Yes:
+            if table_name in self.del_buf:
+                if id_object in self.del_buf[table_name]:
+                    self.del_buf[table_name].remove(id_object)
+                    if not self.del_buf[table_name]:
+                        del self.del_buf[table_name]
+            self.show_color_row(default_color)
 
         
 
-    def show_red_row(self):
-        table_index = self.tabWidget.currentIndex()
-        current_tabel = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+    def show_color_row(self, color):
+        current_tabel, _ = self.get_current_table_name()
         current_tabel.clearSelection()
         row_number = current_tabel.currentRow()
-        red = QtGui.QColor(255, 143, 135)
 
         for col in range(current_tabel.columnCount()):
-            current_tabel.item(row_number, col).setBackground(red)
+            current_tabel.item(row_number, col).setBackground(color)
 
     def cell_double_clicked(self, row, column):
-        table_index = self.tabWidget.currentIndex()
-        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table, table_name = self.get_current_table_name()
+        if table_name == None:
+            return
+        
         item = current_table.item(row, 0)
-        item_id = item.text()
 
-        if table_index == 0:
-            table_name = "Goods"
-        elif table_index == 1:
-            table_name = "Warehouses"
-        elif table_index == 2:
-            table_name = "Orders"
-        elif table_index == 3:
-            table_name = "Clients"
-        elif table_index == 4:
+        if item:
+            item_id = item.text()
+        else:
             return
         
         content = self.db.get_data(table_name, item_id)
 
         self.details_window = Ui_Details(content, table_name=table_name)
-        self.details_window.btn_delete.clicked.connect(self.show_red_row)
 
 
 
@@ -304,20 +313,35 @@ class Ui_Dialog(object):
         self.filter_window.exec_()
 
     def reload_with_filter(self):
-        table_index = self.tabWidget.currentIndex()
-        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table, _ = self.get_current_table_name()
 
         config = self.filter_window.config
         filter = self.filter_window.finish_filter
 
         if config == 0:
-            data = self.db.filter_goods(**filter)
+            try:
+                data = self.db.filter_goods(**filter)
+            except Exception as e:
+                QMessageBox.warning(None,"Ошибка запроса", "Ошибка при выполнении запроса:\n "+str(e))
+                return
         elif config == 1:
-            data = self.db.filter_wharehouses(**filter)
+            try:
+                data = self.db.filter_wharehouses(**filter)
+            except Exception as e:
+                QMessageBox.warning(None,"Ошибка запроса", "Ошибка при выполнении запроса:\n "+str(e))
+                return
         elif config == 2:
-            data = self.db.filter_orders(**filter)
+            try:
+                data = self.db.filter_orders(**filter)
+            except Exception as e:
+                QMessageBox.warning(None,"Ошибка запроса", "Ошибка при выполнении запроса:\n "+str(e))
+                return
         elif config == 3:
-            data = self.db.filter_clients(**filter)
+            try:
+                data = self.db.filter_clients(**filter)
+            except Exception as e:
+                QMessageBox.warning(None,"Ошибка запроса", "Ошибка при выполнении запроса:\n "+str(e))
+                return
         elif config == 4:
             inter = filter['операция']
             if inter != "последние":
@@ -351,7 +375,7 @@ class Ui_Dialog(object):
                     current_table.setItem(index_row, index_value, item)
                     item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
         else:
-            current_table.setRowCount(1)
+            current_table.setRowCount(0)
 
 
     def show_popup(self, index):
@@ -369,7 +393,13 @@ class Ui_Dialog(object):
 
     def reload_table(self):
         table_index = self.tabWidget.currentIndex()
-        current_table = self.tabWidget.findChild(QtWidgets.QTableWidget, f"tableWidget_{table_index+1}")
+        current_table, _ = self.get_current_table_name()
+
+        if self.del_buf:
+            for key, values in self.del_buf.items():
+                for value in values:
+                    self.db.delete_data(key, value)
+            self.del_buf = {}
 
         content = []
 
@@ -401,7 +431,7 @@ class Ui_Dialog(object):
                     current_table.setItem(index_row, index_value, item)
                     item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
         else:
-            current_table.setRowCount(1)
+            current_table.setRowCount(0)
 
 
 
