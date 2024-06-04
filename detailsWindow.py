@@ -89,7 +89,8 @@ class Ui_Details(QWidget):
         if current_text == 'Отменить изменения':
             self.btn_change.setText('Изменить')
             self.btn_change.setStyleSheet("")
-            self.change_picture_button.setEnabled(False)
+            if hasattr(self, 'change_picture_button') and self.change_picture_button:
+                self.change_picture_button.setEnabled(False)
             for value, key in reversed_dict.items():
                 if key != "id" and key != "picture":
                     widg = self.widgets.get(key)
@@ -102,7 +103,8 @@ class Ui_Details(QWidget):
         else:
             self.btn_change.setText('Отменить изменения')
             self.btn_change.setStyleSheet("background-color: #AFB5B9; color: white;")
-            self.change_picture_button.setEnabled(True)
+            if hasattr(self, 'change_picture_button') and self.change_picture_button:
+                self.change_picture_button.setEnabled(True)
             for value, key in reversed_dict.items():
                 if key != "id":
                     widg = self.widgets.get(key)
@@ -130,7 +132,9 @@ class Ui_Details(QWidget):
         id_wgt = self.widgets.get("id")
         id = id_wgt.text()
         if self.finish_dict != {}:
-            self.finish_dict['picture'] = self.im_path
+            print(self.finish_dict)
+            if self.finish_dict.get('picture') == "Выбрать картинку":
+                self.finish_dict.pop('picture')
             send_dict = self.finish_dict
             self.db.change_data(table_name=self.table_name, row_id=int(id), data=send_dict)
             self.change_cancel_button()
